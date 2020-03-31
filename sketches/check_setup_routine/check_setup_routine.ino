@@ -1,15 +1,10 @@
-/* square_wave_gen
+/* check_setup_routine
 
-  Square wave generator.  This sketch continuously polls each of 3 thumbwheel
-  switch inputs in order to update the analog square wave output.  These
-  switches control waveform parameters with one switch for each of frequency,
-  duty ratio and amplitude.
+  This sketch verifies zero output with just a representative setup routine and nothing in loop routine.
   
-  To read a thumbwheel switch, we set its common pin low and then read the 4 BCD
-  lines to get values from 0 to 9, and then we map those values to desired
-  frequency, duty ratio and amplitude.
+  DAC output on pin 0 should simple remain close to zero volts.
 
-  modified 30 March 2020 by Ken Hrovat
+  modified 31 March 2020 by Ken Hrovat
 
 */
 
@@ -75,41 +70,20 @@ void setup() {
 
 // the loop function runs forever
 void loop() {
+  DEBUG_PRINTLN("===   ZERO OUTPUT.   ====================================================");
+  delay(2000);
+  
+}
 
-  // check duty switch
-  while (is_duty_zero()) { // POLLING MODE while duty is set to zero
+// ############################################################################################
 
-    // TODO we always write zero part of square wave last, so OFF's implied here?
-    
-    // poll all 3 switches to update frequency, duty and amplitude values
-    read_bcd(0); // frequency
-    read_bcd(2); // amplitude
-    read_bcd(1); // duty ratio << do this one last
-    
-    DEBUG_PRINT(params[0]); DEBUG_PRINT(", ");
-    DEBUG_PRINT(params[2]); DEBUG_PRINT(", ");
-    DEBUG_PRINTLN(params[1]);
-
-    delay(1500); 
-  }
-
-//  // RUN MODE (since duty is non-zero)
-//  
-//  // write the "ON" pulse of square wave output
-//  analogWrite(15,(int)a);
-//  delay(1000*w);  // wait per period and duty ratio
-//  update_duty();
-//  
-//  // write the "OFF" zeros part of square wave output
-//  analogWrite(15, 0);
-//  delay(1000*z);  // wait the rest of period
-//  update_duty();
-//  
-
-  update_duty();
-  debug_print_inputs();
-  debug_print_outputs();
-  DEBUG_PRINTLN("-----------------------------------------------------");   
+// convert binary input (inverse logic) values to index
+int bcd2index(int v1, int v2, int v4, int v8){
+  int result;
+  result = 1 * (1 - v1) + 2 * (1 - v2) + 4 * (1 - v4) + 8 * (1 - v8);
+  // FIXME what should we set index value to when internal state is out of bounds?
+  if (result > 9) {result = 0;}
+  return result;
 }
 
 // disable all switches
@@ -136,13 +110,10 @@ boolean is_duty_zero() {
   return digitalRead(3) == HIGH && digitalRead(4) == HIGH && digitalRead(5) == HIGH && digitalRead(6) == HIGH;
 }
 
-// convert binary input (inverse logic) values to index
-int bcd2index(int v1, int v2, int v4, int v8){
-  int result;
-  result = 1 * (1 - v1) + 2 * (1 - v2) + 4 * (1 - v4) + 8 * (1 - v8);
-  // FIXME what should we set index value to when internal state is out of bounds?
-  if (result > 9) {result = 0;}
-  return result;
+// update duty ratio value
+void update_duty() {
+  read_bcd(1);
+//  DEBUG_PRINTLN("update_duty");
 }
 
 // read BCD lines
@@ -170,11 +141,7 @@ void read_bcd(int k) { // read BCD lines for switch at index = k
   a = params[2];      // amplitude in DAC level
 }
 
-// update duty ratio value
-void update_duty() {
-  read_bcd(1);
-//  DEBUG_PRINTLN("update_duty");
-}
+// ############################################################################################
 
 // debug print inputs
 void debug_print_inputs() {

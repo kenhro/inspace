@@ -41,13 +41,13 @@ void setup() {
 void loop() {
 
   for (int dacLevel = dacStart; dacLevel <= dacEnd; dacLevel += dacStep) {
-    
-    // print DAC level
-    Serial.println(dacLevel);
 
     // set output level
     analogWrite(out, dacLevel);
 
+    // print DAC level
+    Serial.println(dacLevel);
+    
     delay(interval); // time to jot down output value in Excel and be ready for change to next
     
   }
