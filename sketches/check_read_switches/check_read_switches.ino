@@ -38,6 +38,9 @@ float w = params[1] * T;  // width of "ON" pulse in seconds; duty ratio times pe
 float z = T - w;          // width of "OFF" (zero) in seconds
 float a = params[2];      // amplitude in terms of DAC level
 
+// initialize counter that finalizes switch changes
+int counter = 0;
+
 // the setup function runs once when you press reset or first power the board
 void setup() {
 
@@ -76,17 +79,27 @@ void setup() {
 // the loop function runs forever
 void loop() {
 
-  for (isw = 0; isw <= 2; isw++) {
-  	for (int i = 0; i <= 9; i++) {
-  		read_bcd(isw);
-  		DEBUG_PRINT("change switch #");
-  		DEBUG_PRINTLN(isw + 1);
-  		debug_print_inputs();
-        debug_print_outputs();
-        DEBUG_PRINTLN("-----------------------------------------------------");
-        delay(9000);   
-  	}
+  // check duty switch
+  while (is_duty_zero()) { // POLLING MODE while duty is set to zero
+    // TODO we always write zero part of square wave last, so OFF's implied here?
+    counter = 9;
+    read_bcd(0); // frequency
+    read_bcd(2); // amplitude
   }
+
+  // countdown timer to finalize switch settings
+  while (counter > 0) {
+    read_bcd(1); // duty ratio << do this one last
+    delay(1000);
+    counter--;
+  }
+
+  debug_print_inputs();
+  debug_print_outputs();
+  DEBUG_PRINTLN("-----------------------------------------------------");
+
+  delay(5000);
+
 }
 
 // disable all switches
@@ -156,14 +169,14 @@ void update_duty() {
 // debug print inputs
 void debug_print_inputs() {
   DEBUG_PRINT("INPUTS: ");
-  DEBUG_PRINT(v8);
-  DEBUG_PRINT(v4);
-  DEBUG_PRINT(v2);
-  DEBUG_PRINT(v1);
-  DEBUG_PRINT(" --> ");
-  DEBUG_PRINT(" idx = ");
-  DEBUG_PRINT(idx);
-  DEBUG_PRINT(" ==> F = ");
+//DEBUG_PRINT(v8);
+//DEBUG_PRINT(v4);
+//DEBUG_PRINT(v2);
+//DEBUG_PRINT(v1);
+//DEBUG_PRINT(" --> ");
+//DEBUG_PRINT(" idx = ");
+//DEBUG_PRINT(idx);
+  DEBUG_PRINT("F = ");
   DEBUG_PRINT(params[0]);
   DEBUG_PRINT(" ");
   DEBUG_PRINT(units[0]);
@@ -179,7 +192,7 @@ void debug_print_inputs() {
 
 // debug print outputs
 void debug_print_outputs() {
-  DEBUG_PRINT("OUTPUT: [DAC output level (0-1023)]: ");
+  DEBUG_PRINT("OUTPUT: ");
   DEBUG_PRINT("T = ");
   DEBUG_PRINT(T);
   DEBUG_PRINT(" sec, w = ");
@@ -188,4 +201,10 @@ void debug_print_outputs() {
   DEBUG_PRINT(z);
   DEBUG_PRINT(" sec, a = ");
   DEBUG_PRINTLN(a);
+}
+
+void debug_print_params() {
+  DEBUG_PRINT(params[0]); DEBUG_PRINT(", ");
+  DEBUG_PRINT(params[2]); DEBUG_PRINT(", ");
+  DEBUG_PRINTLN(params[1]);
 }
