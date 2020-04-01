@@ -9,7 +9,7 @@
   lines to get values from 0 to 9, and then we map those values to desired
   frequency, duty ratio and amplitude.
 
-  modified 30 March 2020 by Ken Hrovat
+  modified 1 April 2020 by Ken Hrovat
 
 */
 
@@ -89,8 +89,8 @@ void loop() {
 
   // countdown timer to finalize switch settings
   while (counter > 0) {
-    read_bcd(1); // duty ratio << do this one last
     delay(1000);
+    read_bcd(1); // duty ratio << do this one last
     counter--;
   }
 
@@ -158,12 +158,6 @@ void read_bcd(int k) { // read BCD lines for switch at index = k
   w = params[1] * T;  // width of pulse "ON" in seconds is duty cycle times period
   z = T - w;          // zero span "OFF" in seconds
   a = params[2];      // amplitude in DAC level
-}
-
-// update duty ratio value
-void update_duty() {
-  read_bcd(1);
-//  DEBUG_PRINTLN("update_duty");
 }
 
 // debug print inputs
