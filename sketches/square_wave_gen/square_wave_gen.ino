@@ -1,20 +1,25 @@
 /* square_wave_gen
 
-  Square wave generator.  This sketch continuously polls each of 3 thumbwheel
-  switch inputs in order to update the analog square wave output.  These
-  switches control waveform parameters with one switch for each of frequency,
-  duty ratio and amplitude.
+  Square wave generator.
   
-  To read a thumbwheel switch, we set its common pin low and then read the 4 BCD
-  lines to get values from 0 to 9, and then we map those values to desired
-  frequency, duty ratio and amplitude.
+  This sketch does the following:
+  - starts with zero output assuming the duty cycle thumbwheel switch is zero
+  - when duty cycle thumbwheel is zero, it continuously other 2 thumbwheels
+    to update values for frequency and amplitude
+  - once the duty cycle thumbwheel is changed, the frequency and amplitude
+    switches are no longer checked for changes (those will no longer register)
+    and a 10-second timer starts to capture changes made to duty cycle thumbwheel
+  
+  Note that in order to read a thumbwheel switch, we set its common pin low and
+  then read the 4 BCD lines to get values from 0 to 9, and then we map those values
+  to desired frequency, duty ratio and amplitude.
 
   modified 1 April 2020 by Ken Hrovat
 
 */
 
 // Change last word in next line to: DEBUG for print statements, or FLIGHT to suppress those
-#define DEBUG
+#define FLIGHT
 
 #include "debug_print.h"
 #include "parameters.h"
@@ -37,6 +42,9 @@ float T = 1 / params[0];  // total period in seconds
 float w = params[1] * T;  // width of "ON" pulse in seconds; duty ratio times period
 float z = T - w;          // width of "OFF" (zero) in seconds
 float a = params[2];      // amplitude in terms of DAC level
+
+// initialize flag that signals constant DC output (duty ratio of one)
+boolean dcflag = false;  // FIXME this is kludge to deal with DC when duty ratio = 1
 
 // initialize counter that finalizes switch changes
 int counter = 0;
@@ -81,13 +89,14 @@ void loop() {
 
   // check duty switch
   while (is_duty_zero()) { // POLLING MODE while duty is set to zero
-    // TODO we always write zero part of square wave last, so OFF's implied here?
     counter = 9;
     read_bcd(0); // frequency
     read_bcd(2); // amplitude
+    analogWrite(15, 0); // write zero output
+    delay(10);
   }
 
-  // countdown timer to finalize switch settings
+  // countdown timer to finalize switch settings with duty ratio switch
   while (counter > 0) {
     delay(1000);
     read_bcd(1); // duty ratio << do this one last
@@ -103,9 +112,9 @@ void loop() {
   // write the "ON" pulse of square wave output
   analogWrite(15,(int)a);
   delay(1000*w);  // wait per period and duty ratio
-  
-  // write the "OFF" zeros part of square wave output
-  analogWrite(15, 0);
+
+  // write "OFF" zeros part of square wave output (do this ONLY if NOT pure DC)
+  if (!dcflag) { analogWrite(15, 0); }
   delay(1000*z);  // wait the rest of period
 
 }
@@ -160,6 +169,13 @@ void read_bcd(int k) { // read BCD lines for switch at index = k
   // convert BCD to index value into 2D array of square wave parameters
   idx = bcd2index(v1, v2, v4, v8);
 
+  // test for DC flag
+  dcflag = false;
+  if ( k  == 1 && idx == 9 ) {
+    // FIXME this is part of kludge to handle awkward pure DC condition
+    dcflag = true;
+  }
+  
   // update kth parameter in 3-element float array
   params[k] = parameters[k][idx];
   T = 1 / params[0];  // period in seconds
