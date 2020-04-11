@@ -3,9 +3,12 @@
   Square wave generator.
   
   This sketch does the following:
+
   - starts with zero output assuming the duty cycle thumbwheel switch is zero
-  - when duty cycle thumbwheel is zero, it continuously other 2 thumbwheels
-    to update values for frequency and amplitude
+
+  - when duty cycle thumbwheel is zero, we continuously poll other 2 thumbwheels
+    in order to update values for frequency and amplitude
+
   - once the duty cycle thumbwheel is changed, the frequency and amplitude
     switches are no longer checked for changes (those will no longer register)
     and a 10-second timer starts to capture changes made to duty cycle thumbwheel
@@ -54,6 +57,9 @@ void setup() {
 
   // initialize analog output pin
   pinMode(15, OUTPUT);  // analog square wave output
+
+  // just to be sure, let's write zero to output here
+  analogWrite(15, 0);
   
   // initialize thumbswitch common pins as outputs
   pinMode(0, OUTPUT); // THSW-1 FREQ
@@ -68,6 +74,11 @@ void setup() {
 
   // change the analog write resolution to 10-bit
   analogWriteResolution(10);  // default is 8-bit
+
+  // initialize parameters based on switch settings 
+  read_bcd(0); // frequency
+  read_bcd(1); // duty
+  read_bcd(2); // amplitude
 
   // initialize serial output
   SERIAL_INIT();
@@ -89,14 +100,14 @@ void loop() {
 
   // check duty switch
   while (is_duty_zero()) { // POLLING MODE while duty is set to zero
-    counter = 9;
+    counter = 10;
     read_bcd(0); // frequency
     read_bcd(2); // amplitude
     analogWrite(15, 0); // write zero output
     delay(10);
   }
 
-  // countdown timer to finalize switch settings with duty ratio switch
+  // countdown timer to finalize switch settings with duty cycle switch
   while (counter > 0) {
     delay(1000);
     read_bcd(1); // duty ratio << do this one last
@@ -110,7 +121,7 @@ void loop() {
   // RUN MODE (since duty is non-zero)
   
   // write the "ON" pulse of square wave output
-  analogWrite(15,(int)a);
+  analogWrite(15, (int)a);
   delay(1000*w);  // wait per period and duty ratio
 
   // write "OFF" zeros part of square wave output (do this ONLY if NOT pure DC)
